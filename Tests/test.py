@@ -1,7 +1,7 @@
 from assistant import AddressBook, Name, Phone, Record
 
 
-if __name__ == '__main__':
+def test():
     name = Name('Bill')
     phone = Phone('1234567890')
     rec = Record(name, phone)
@@ -14,4 +14,8 @@ if __name__ == '__main__':
     assert isinstance(ab['Bill'].phones[0], Phone)
     assert ab['Bill'].phones[0].value == '1234567890'
 
-    print('All is Ok :)')
+    print('Test 1 ..... passed')
+
+
+if __name__ == '__main__':
+    test()
