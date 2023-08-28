@@ -3,6 +3,8 @@ from datetime import datetime, date
 
 
 class Field:
+    """parent class for fields in records such as Name, Phone, Birthday"""
+
     def __init__(self, value):
         self.__value = None
         self.value = value
@@ -23,11 +25,13 @@ class Field:
 
 
 class Name(Field):
+    """Class for name field"""
+
     def __init__(self, name: str):
         super().__init__(name)
 
     def __repr__(self):
-        return f'Name({self.value})'
+        return f'Name({repr(self.value)})'
 
     def __str__(self):
         return f'Name: {self.value}'
@@ -40,14 +44,16 @@ class Name(Field):
     def value(self, name: str):
         if type(name) is not str:
             raise TypeError('Name must be string')
-        if len(name) < 2:
+        if len(name) < 3:
             raise ValueError('Name is too short. Must be minimum 3 characters')
-        if not name.isalnum():
+        if not name.replace(' ', '').replace("'", '').isalnum():
             raise ValueError('Name contains not allowed signs')
         self.__value = name
 
 
 class Phone(Field):
+    """Class for phone field"""
+
     def __init__(self, phone: str):
         super().__init__(phone)
 
@@ -55,10 +61,16 @@ class Phone(Field):
         return f'Phone({repr(self.value)})'
 
     def __str__(self):
-        return f'Phone: {self.value}'
+        result_string = ''
+        if len(self.value) > 10:
+            result_string += self.value[-15:-10]
+        if len(self.value) > 7:
+            result_string += f'({self.value[-10:-7]})'
+        result_string += f'{self.value[-7:-4]}-{self.value[-4:-2]}-{self.value[-2:]}'
+        return result_string
 
     @property
-    def value(self):
+    def value(self) -> str:
         return self.__value
 
     @value.setter
@@ -71,20 +83,29 @@ class Phone(Field):
             raise ValueError('Phone contains not allowed signs')
         self.__value = phone
 
-    def _sanitize_phone_number(self, phone: str):
+    def _sanitize_phone_number(self, phone: str) -> str:
+        """
+        helper function for deleting all unnecessary signs from phone number
+        :param phone: string representing phone number
+        :return: sanitized phone number string
+        """
         new_phone = (
             phone.strip()
             .removeprefix("+")
             .replace("(", "")
             .replace(")", "")
             .replace("-", "")
+            .replace('*', "")
+            .replace('x', "")
             .replace(" ", "")
         )
         return new_phone
 
 
 class Birthday(Field):
-    def __init__(self, birthday: datetime):
+    """Class for field of birthday. Birthday is stored as datetime.date object"""
+
+    def __init__(self, birthday: date | datetime):
         super().__init__(birthday)
 
     def __repr__(self):
@@ -94,22 +115,33 @@ class Birthday(Field):
         return f'{self.value.strftime("%d.%m.%Y")}'
 
     @property
-    def value(self):
+    def value(self) -> date:
         return self.__value
 
     @value.setter
-    def value(self, birthday: datetime):
-        if type(birthday) is not datetime:
-            raise TypeError('Birthday must be date object')
-        curr_datetime = datetime.now()
-        if birthday > curr_datetime:
+    def value(self, birthday: date | datetime):
+        if type(birthday) not in (date, datetime):
+            raise TypeError('Birthday must be date or datetime object')
+        if type(birthday) == datetime:
+            birthday = birthday.date()
+        curr_date = datetime.now().date()
+        if birthday > curr_date:
             raise ValueError('Birthday cannot be the date after today')
-        if curr_datetime.year - birthday.year > 150:
+        if curr_date.year - birthday.year > 150:
             raise ValueError('Person cannot be such old')
         self.__value = birthday
 
 
 class Record:
+    """
+    Class representing the record in address book.
+
+    Attributes:
+        name (Name): the name of the contact
+        phones (list[Phone]): list of phone numbers of the contact. May be empty
+        birthday (Birthday): date of the birth of the contact. Optional
+    """
+
     def __init__(self, name: Name, phone: Phone = None, birthday: Birthday = None):
         self.__name = None
         self.__birthday = None
@@ -121,27 +153,27 @@ class Record:
             self.phones.append(phone)
 
     def __repr__(self):
-        return f'Record({repr(self.name)}, {self.phones}, {repr(self.birthday)}'
+        return f'Record(name={repr(self.name)}, phones={self.phones}, birthday={repr(self.birthday)})'
 
     def __str__(self):
-        return (f'{self.name.value:<20}|  '
+        return (f'{self.name.value:<28}|  '
                 f'{str(self.birthday) if self.birthday else "":<12}|  ' +
-                ', '.join(phone.value for phone in self.phones))
+                ', '.join(str(phone) for phone in self.phones))
 
     @property
-    def name(self):
+    def name(self) -> Name:
         return self.__name
 
     @name.setter
     def name(self, new_name: Name):
         if self.__name is not None:
-            raise AttributeError('Name already setted')
+            raise AttributeError('Name already exist for this record')
         if type(new_name) is not Name:
             raise TypeError('Wrong type of given name')
         self.__name = new_name
 
     @property
-    def birthday(self):
+    def birthday(self) -> Birthday:
         return self.__birthday
 
     @birthday.setter
@@ -150,26 +182,50 @@ class Record:
             self.__birthday = birth
 
     def add_phone(self, phone: Phone) -> None:
+        """
+        Adds given Phone to list of phones of current contact
+        :param phone: Phone obj with value of phone
+        :return: None
+        """
         self.phones.append(phone)
 
     def change_phone(self, phone: Phone, new_value: str) -> None:
+        """
+        changes value in given phone obj with new_value
+        :param phone: Phone obj
+        :param new_value: str representing phone
+        :return: None
+        """
         phone.value = new_value
 
     def delete_phone(self, phone: Phone) -> None:
+        """
+        removes given phone obj from list of phones in current Record
+        :param phone: Phone obj
+        :return: None
+        """
         if phone in self.phones:
             self.phones.remove(phone)
         else:
-            raise ValueError(f'{self.name} does not have such phone number {phone.value}')
+            raise KeyError(f'{self.name} does not have such phone number {phone.value}')
 
     def delete_all_phones(self) -> None:
+        """
+        removes all phone numbers in list of phones in current Record
+        :return:
+        """
         self.phones.clear()
 
     def days_to_birthday(self) -> int | None:
+        """
+        calculates and returns number of day to the next birthday.
+        returns None if no birthday set in the current Record
+        """
         if not self.birthday:
             return None
         curr_date = datetime.now().date()
         curr_year = curr_date.year
-        birthday_in_curr_year = self.birthday.value.date().replace(year=curr_year)
+        birthday_in_curr_year = self.birthday.value.replace(year=curr_year)
         if curr_date <= birthday_in_curr_year:
             delta = birthday_in_curr_year - curr_date
             return delta.days
@@ -179,40 +235,53 @@ class Record:
 
 
 class AddressBook(UserDict):
+    """
+    Class representing address book. It is a dictionary with name of the contact as key
+    and Record representing this contact as value
+    """
 
-    def __init__(self, number_records_return=1):
+    def __init__(self):
         super().__init__()
-        self.number_records_return = number_records_return
-        self.__counter = 0
+        self.number_records_return = 10
 
-    def __iter__(self):
-        self.__counter = 0
-        # uncomment proper line
-        self.records = self.__get_lines()  # when needed list of string representations of N records
-        # self.records = list(self.data.values())  #when needed list of N Record objects
-        return self
+    def __iter__(self):  # implementation through generator using yield (works more efficiently with memory)
+        """creating generator which returns list with 'self.number_records_return' Records each time"""
+        result = []
+        for id_name in self.data:
+            result.append(self.data[id_name])
+            if len(result) == self.number_records_return:
+                yield result
+                result = []
+        yield result
 
-    def __next__(self):
-        if self.__counter >= len(self.records):
-            raise StopIteration
-        start = self.__counter
-        self.__counter += self.number_records_return
-        return self.records[start:self.__counter]
+    # def __iter__(self):  # implementation through iterator a
+    #    self.__end_index = 0
+    #    self.records = list(self.data.values())
+    #    return self
+
+    # def __next__(self):
+    #     if self.__end_index >= len(self.records):
+    #         raise StopIteration
+    #     start = self.__end_index
+    #     self.__end_index += self.number_records_return
+    #     return self.records[start:self.__end_index]
 
     def __repr__(self):
         return f'AddressBook({repr(self.data)})'
 
     def __str__(self):
-        h_line = '-----|--------------------|--------------|------------------------------------------\n'
-        res = [h_line, '  #  |        Name        |   Birthday   |  Phones\n', h_line]
-        res.extend(self.__get_lines())
-        res.append(h_line)
-        return ''.join(res)
+        h_line = '-----|----------------------------|--------------|------------------------------------------\n'
+        result = [h_line, '  #  |            Name            |   Birthday   |  Phones\n', h_line]
+        result.extend(self.__get_records_strings())
+        result.append(h_line)
+        return ''.join(result)
 
     def add_record(self, record: Record):
+        """adds record obj to address book"""
         self.data[record.name.value] = record
 
-    def __get_lines(self) -> list[str]:
+    def __get_records_strings(self) -> list[str]:
+        """creates and returns list with numerated string representation of all Records"""
         i, lines = 1, []
         for name in sorted(self.data.keys()):
             lines.append(f'{i:>4} |' + str(self.data[name]) + '\n')
