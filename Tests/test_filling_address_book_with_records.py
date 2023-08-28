@@ -1,52 +1,58 @@
 from random import randint, choice
-from string import ascii_lowercase, digits
-from datetime import datetime
 from assistant import AddressBook, Birthday, Name, Phone, Record
+from faker import Faker
 
 
 def test():
+    """
+    function for testing class AddressBook.
+    Fills the addressbook with fake values
+    and then shows the records in сhunks of
+    given size
+    """
     my_address_book = AddressBook()
-
+    fake = Faker('uk_UA')
     number_or_records = randint(40, 60)
-    for _ in range(number_or_records):
-        name_str = ''.join(choice(ascii_lowercase) for _ in range(randint(3, 18))).title()
-        name = Name(name_str)
 
+    # populating my_address_book with fake names and birthdays
+    for _ in range(number_or_records):
+        name_str = fake.name()
+        name = Name(name_str)
         birth = None
-        if choice([1, 1, 1, 0, 1, 1, 1, 0, 0, 1]):
-            birth_date = datetime(year=randint(1900, 2022),
-                                  month=randint(1, 12),
-                                  day=randint(1, 28),
-                                  hour=randint(0, 23),
-                                  minute=randint(0, 59))
+        if randint(1, 10) < 8:  # not every but only 7 of 10 records will be with birthdays
+            birth_date = fake.date_of_birth(minimum_age=15)
             birth = Birthday(birth_date)
 
         rec = Record(name, birthday=birth)
         my_address_book.add_record(rec)
 
     records = list(my_address_book.data.values())
+
+    # populate records with fake phones. Some of the records will have no phones and some will have a few phones.
     for _ in range(number_or_records * 3 // 2):
-
-        phone_str = ''.join(choice(digits) for _ in range(randint(7, 12)))
+        phone_str = fake.phone_number()
         phone_number = Phone(phone_str)
-
         choice(records).add_phone(phone_number)
 
     print(my_address_book)
     print('Random filling of AdressBook complete!')
-
+    print('Enter the number N of records to show at each time: ', end='')
     while True:
         try:
-            num = input('Enter the number N of records to show at each time: ')
-            my_address_book.number_records_return = int(num)
+            number_records_return = input()
+            number_records_return = int(number_records_return)
+            if number_records_return < 1:
+                print('Number must be greater than zero. Enter correct number: ', end='')
+                continue
+            my_address_book.number_records_return = number_records_return
             break
         except ValueError:
-            print('Enter correct number: ')
+            print('Enter correct number: ', end='')
 
-    for part in my_address_book:
-        input(f"Press Enter to show next {my_address_book.number_records_return} records: ")
-        for obj in part:
-            print(repr(obj))
+    for n_records in my_address_book:
+        input(f"\nPress Enter to show next {my_address_book.number_records_return} records: ")
+        for record in n_records:
+            print(repr(record))
 
 
 if __name__ == '__main__':

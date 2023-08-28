@@ -7,12 +7,12 @@ def test():
     date_of_test = date(year=2023, month=8, day=21)
     delta = datetime.now().date() - date_of_test
 
-    birth_date = datetime(year=2019, month=10, day=24, hour=10, minute=34)
+    birth_date = date(year=2019, month=10, day=24)
     birth = Birthday(birth_date)
     rec = Record(Name('Vasya'), birthday=birth)
     assert rec.days_to_birthday() == 64 - delta.days
 
-    birth_date = datetime(year=1900, month=8, day=18, hour=10, minute=34)
+    birth_date = date(year=1900, month=8, day=18)
     birth.value = birth_date
     assert rec.days_to_birthday() == 363 - delta.days
 
