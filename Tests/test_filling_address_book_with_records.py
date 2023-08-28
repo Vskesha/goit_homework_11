@@ -17,6 +17,8 @@ def test():
     # populating my_address_book with fake names and birthdays
     for _ in range(number_or_records):
         name_str = fake.name()
+        if 'пан' in name_str:
+            continue
         name = Name(name_str)
         birth = None
         if randint(1, 10) < 8:  # not every but only 7 of 10 records will be with birthdays
@@ -52,7 +54,7 @@ def test():
     for n_records in my_address_book:
         input(f"\nPress Enter to show next {my_address_book.number_records_return} records: ")
         for record in n_records:
-            print(repr(record))
+            print(str(record))
 
 
 if __name__ == '__main__':
